@@ -14,10 +14,11 @@ spec:
         app: bank-api
     spec:
       containers:
-      - name: bank-api
-        image: citibankacr.azurecr.io/bank-api:latest # Unga ACR name 'citibankacr' thaana-nu check pannikonga
-        ports:
-        - containerPort: 8080
+        - name: bank-api
+          # Inga dhaan change pannanum: 'citibankacr' lendhu 'citibankreg31318'-ku maathunga
+          image: citibankreg31318.azurecr.io/bank-api:latest 
+          ports:
+            - containerPort: 8080
 ---
 apiVersion: v1
 kind: Service
