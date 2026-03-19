@@ -1,10 +1,12 @@
+# Stage 1: Build (Idhu already work aagiduchi, so change venaam)
 FROM maven:3.8.1-jdk-8 AS build
 WORKDIR /app
 COPY . .
 RUN mvn clean package -DskipTests
 
-FROM openjdk:8-jre-slim
+# Stage 2: Run (Indha line-ah mattum maathunga)
+FROM eclipse-temurin:8-jre
 WORKDIR /app
-# stage 1-la irundhu target kulla irukura jar-ah copy panrom
 COPY --from=build /app/target/bank-api.jar app.jar
+EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
