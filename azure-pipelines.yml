@@ -1,17 +1,17 @@
 trigger:
-- main  # GitHub-la main branch-la push panna build trigger aagum
+- main
 
-# IDHU DHAAN MUKKIAM: Microsoft-hosted badhila unga local agent pool
 pool:
-  name: 'Default'  # Neenga Azure DevOps-la create panna Pool name (usually Default)
+  name: 'Default'
 
 variables:
-  # Azure DevOps -> Project Settings -> Service Connections-la neenga kudutha peru
+  # Azure DevOps -> Project Settings -> Service Connections-la neenga kudutha EXACT name-ah inga kudunga
   dockerRegistryServiceConnection: 'MyACRConnection' 
   kubernetesServiceConnection: 'MyAKSConnection'
   
   imageRepository: 'bank-api'
-  containerRegistry: 'citibankacr.azurecr.io' # Unga ACR URL
+  # IDHU DHAAN MUKKIAM: Correct ACR Login Server
+  containerRegistry: 'citibankreg31318.azurecr.io' 
   dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
   tag: '$(Build.BuildId)'
 
@@ -22,15 +22,12 @@ stages:
   - job: Build
     displayName: 'Build on Local Agent'
     steps:
-    
-    # Step 1: Login to ACR (Self-hosted agent-ku auth thevai)
     - task: Docker@2
       displayName: 'Login to ACR'
       inputs:
         command: 'login'
         containerRegistry: $(dockerRegistryServiceConnection)
 
-    # Step 2: Build and Push (Idhu auto-ah Dockerfile-la irukura Maven-ah run pannum)
     - task: Docker@2
       displayName: 'Build and Push image'
       inputs:
@@ -49,13 +46,12 @@ stages:
   - job: Deploy
     displayName: 'Deploy to AKS'
     steps:
-    
-    # Step 3: Deployment.yaml file-ah AKS-la apply pannudhu
     - task: KubernetesManifest@0
       displayName: 'Deploy to AKS'
       inputs:
         action: 'deploy'
         namespace: 'bank-api-namespace'
         manifests: '$(Build.SourcesDirectory)/deployment.yaml'
+        # Inga $(tag) use pannradhu dhaan best practice
         containers: '$(containerRegistry)/$(imageRepository):$(tag)'
         kubernetesServiceConnection: $(kubernetesServiceConnection)
