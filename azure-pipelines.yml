@@ -2,7 +2,7 @@ trigger:
 - main
 
 pool:
-  name: 'Default'
+  vmImage: 'ubuntu-latest' # Standard Microsoft-hosted agent use pannunga
 
 variables:
   dockerRegistryServiceConnection: 'MyACRConnection'
@@ -11,7 +11,7 @@ variables:
   tag: '$(Build.BuildId)'
 
 stages:
-# STAGE 1: Build Once (Consistency-kaaga)
+# STAGE 1: Build Once
 - stage: BuildAndPush
   jobs:
   - job: Build
@@ -25,30 +25,38 @@ stages:
           $(tag)
           latest
 
-# STAGE 2: Deploy to East US (Primary)
-- stage: DeployToEastUS
+# STAGE 2: Deploy to West US (Primary)
+- stage: DeployToWestUS
   dependsOn: BuildAndPush
   jobs:
-  - job: Deploy
-    steps:
-    - task: KubernetesManifest@0
-      inputs:
-        action: 'deploy'
-        kubernetesServiceConnection: 'Citi-EastUS-AKS-Conn' # Target: East US
-        namespace: 'bank-api-namespace'
-        manifests: '$(Build.SourcesDirectory)/deployment.yaml'
-        containers: '$(containerRegistry)/$(imageRepository):$(tag)'
+  - deployment: Deploy
+    environment: 'citi-westus'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: KubernetesManifest@0
+            inputs:
+              action: 'deploy'
+              kubernetesServiceConnection: 'sc-citi-westus-dr' # West US Connection
+              namespace: 'citi-dr-app'
+              manifests: '$(Build.SourcesDirectory)/deployment.yaml'
+              containers: '$(containerRegistry)/$(imageRepository):$(tag)'
 
-# STAGE 3: Deploy to Central India (Disaster Recovery)
+# STAGE 3: Deploy to Central India (DR)
 - stage: DeployToCentralIndia
-  dependsOn: DeployToEastUS # East US success aana dhaan DR-ku pogum
+  dependsOn: DeployToWestUS 
   jobs:
-  - job: Deploy
-    steps:
-    - task: KubernetesManifest@0
-      inputs:
-        action: 'deploy'
-        kubernetesServiceConnection: 'Citi-CentralIndia-AKS-Conn' # Target: Central India
-        namespace: 'bank-api-namespace'
-        manifests: '$(Build.SourcesDirectory)/deployment.yaml'
-        containers: '$(containerRegistry)/$(imageRepository):$(tag)'
+  - deployment: Deploy
+    environment: 'citi-centralindia'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: KubernetesManifest@0
+            inputs:
+              action: 'deploy'
+              kubernetesServiceConnection: 'sc-citi-centralindia-dr' # Central India Connection
+              namespace: 'citi-dr-app'
+              manifests: '$(Build.SourcesDirectory)/deployment.yaml'
+              containers: '$(containerRegistry)/$(imageRepository):$(tag)'
