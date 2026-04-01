@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: bank-api-service
-  namespace: bank-api-namespace
+  namespace: citi-dr-app  # <--- Change this if you used citi-dr-app before
 spec:
   replicas: 2
   selector:
@@ -15,16 +15,18 @@ spec:
     spec:
       containers:
         - name: bank-api
-          # Inga dhaan change pannanum: 'citibankacr' lendhu 'citibankreg31318'-ku maathunga
           image: citibankreg31318.azurecr.io/bank-api:latest 
           ports:
             - containerPort: 8080
+          env:
+            - name: REGION_NAME
+              value: "DR Setup" # Namma Java code-ku idhu help-aa irukum
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: bank-api-service
-  namespace: bank-api-namespace
+  namespace: citi-dr-app
 spec:
   type: LoadBalancer
   ports:
