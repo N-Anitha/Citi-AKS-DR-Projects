@@ -2,57 +2,53 @@ trigger:
 - main
 
 pool:
-  name: 'Default' # Unga local self-hosted agent
+  name: 'Default'
 
 variables:
-  # 1. ACR Connection same thaan (Orey image registry)
-  dockerRegistryServiceConnection: 'MyACRConnection' 
-  
-  # 2. IDHU DHAAN CHANGE: Central India-voda AKS Connection name-ah inga kudunga
-  kubernetesServiceConnection: 'Citi-CentralIndia-AKS-Conn' 
-  
+  dockerRegistryServiceConnection: 'MyACRConnection'
   imageRepository: 'bank-api'
-  containerRegistry: 'citibankreg31318.azurecr.io' 
-  dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
+  containerRegistry: 'citibankreg31318.azurecr.io'
   tag: '$(Build.BuildId)'
 
 stages:
+# STAGE 1: Build Once (Consistency-kaaga)
 - stage: BuildAndPush
-  displayName: 'Build and Push Stage'
   jobs:
   - job: Build
-    displayName: 'Build on Local Agent'
     steps:
     - task: Docker@2
-      displayName: 'Login to ACR'
-      inputs:
-        command: 'login'
-        containerRegistry: $(dockerRegistryServiceConnection)
-
-    - task: Docker@2
-      displayName: 'Build and Push image'
       inputs:
         command: 'buildAndPush'
         repository: $(imageRepository)
-        dockerfile: $(dockerfilePath)
         containerRegistry: $(dockerRegistryServiceConnection)
         tags: |
           $(tag)
           latest
 
-- stage: DeployToCentralIndia  # Stage name-ah DR-ku yethamaari mathiyachu
-  displayName: 'DR Deploy - Central India'
+# STAGE 2: Deploy to East US (Primary)
+- stage: DeployToEastUS
   dependsOn: BuildAndPush
   jobs:
   - job: Deploy
-    displayName: 'Deploy to Secondary Cluster'
     steps:
     - task: KubernetesManifest@0
-      displayName: 'Deploy to Central India AKS'
       inputs:
         action: 'deploy'
-        namespace: 'bank-api-namespace' # Namespace same thaan
+        kubernetesServiceConnection: 'Citi-EastUS-AKS-Conn' # Target: East US
+        namespace: 'bank-api-namespace'
         manifests: '$(Build.SourcesDirectory)/deployment.yaml'
         containers: '$(containerRegistry)/$(imageRepository):$(tag)'
-        # Inga $(kubernetesServiceConnection) mela irukkura variable-ah edukkum
-        kubernetesServiceConnection: $(kubernetesServiceConnection)
+
+# STAGE 3: Deploy to Central India (Disaster Recovery)
+- stage: DeployToCentralIndia
+  dependsOn: DeployToEastUS # East US success aana dhaan DR-ku pogum
+  jobs:
+  - job: Deploy
+    steps:
+    - task: KubernetesManifest@0
+      inputs:
+        action: 'deploy'
+        kubernetesServiceConnection: 'Citi-CentralIndia-AKS-Conn' # Target: Central India
+        namespace: 'bank-api-namespace'
+        manifests: '$(Build.SourcesDirectory)/deployment.yaml'
+        containers: '$(containerRegistry)/$(imageRepository):$(tag)'
