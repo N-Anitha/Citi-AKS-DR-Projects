@@ -1,8 +1,9 @@
 trigger:
 - main
 
+# 1. INDHA POOL SECTION MATTUM MAATHUNGA
 pool:
-  vmImage: 'ubuntu-latest' # Standard Microsoft-hosted agent use pannunga
+  name: 'Default' # Microsoft-hosted-ku bathula unga system agent pool
 
 variables:
   dockerRegistryServiceConnection: 'MyACRConnection'
@@ -38,7 +39,7 @@ stages:
           - task: KubernetesManifest@0
             inputs:
               action: 'deploy'
-              kubernetesServiceConnection: 'sc-citi-westus-dr' # West US Connection
+              kubernetesServiceConnection: 'sc-citi-westus-dr'
               namespace: 'citi-dr-app'
               manifests: '$(Build.SourcesDirectory)/deployment.yaml'
               containers: '$(containerRegistry)/$(imageRepository):$(tag)'
@@ -56,7 +57,7 @@ stages:
           - task: KubernetesManifest@0
             inputs:
               action: 'deploy'
-              kubernetesServiceConnection: 'sc-citi-centralindia-dr' # Central India Connection
+              kubernetesServiceConnection: 'sc-citi-centralindia-dr'
               namespace: 'citi-dr-app'
               manifests: '$(Build.SourcesDirectory)/deployment.yaml'
               containers: '$(containerRegistry)/$(imageRepository):$(tag)'
