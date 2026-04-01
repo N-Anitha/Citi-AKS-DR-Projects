@@ -2,15 +2,16 @@ trigger:
 - main
 
 pool:
-  name: 'Default'
+  name: 'Default' # Unga local self-hosted agent
 
 variables:
-  # Azure DevOps -> Project Settings -> Service Connections-la neenga kudutha EXACT name-ah inga kudunga
+  # 1. ACR Connection same thaan (Orey image registry)
   dockerRegistryServiceConnection: 'MyACRConnection' 
-  kubernetesServiceConnection: 'MyAKSConnection'
+  
+  # 2. IDHU DHAAN CHANGE: Central India-voda AKS Connection name-ah inga kudunga
+  kubernetesServiceConnection: 'Citi-CentralIndia-AKS-Conn' 
   
   imageRepository: 'bank-api'
-  # IDHU DHAAN MUKKIAM: Correct ACR Login Server
   containerRegistry: 'citibankreg31318.azurecr.io' 
   dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
   tag: '$(Build.BuildId)'
@@ -39,19 +40,19 @@ stages:
           $(tag)
           latest
 
-- stage: DeployToAKS
-  displayName: 'Deploy Stage'
+- stage: DeployToCentralIndia  # Stage name-ah DR-ku yethamaari mathiyachu
+  displayName: 'DR Deploy - Central India'
   dependsOn: BuildAndPush
   jobs:
   - job: Deploy
-    displayName: 'Deploy to AKS'
+    displayName: 'Deploy to Secondary Cluster'
     steps:
     - task: KubernetesManifest@0
-      displayName: 'Deploy to AKS'
+      displayName: 'Deploy to Central India AKS'
       inputs:
         action: 'deploy'
-        namespace: 'bank-api-namespace'
+        namespace: 'bank-api-namespace' # Namespace same thaan
         manifests: '$(Build.SourcesDirectory)/deployment.yaml'
-        # Inga $(tag) use pannradhu dhaan best practice
         containers: '$(containerRegistry)/$(imageRepository):$(tag)'
+        # Inga $(kubernetesServiceConnection) mela irukkura variable-ah edukkum
         kubernetesServiceConnection: $(kubernetesServiceConnection)
