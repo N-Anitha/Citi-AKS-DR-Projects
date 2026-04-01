@@ -15,6 +15,11 @@ public class App {
 
     @GetMapping("/")
     public String home() {
-        return "<h1>Hello Anitha! 🎂 Citibank App is LIVE on AKS!</h1><p>Your 2.5 Years Cloud Engineer Journey Starts Now!</p>";
+        // Region-ah identify panna intha variable use aagum
+        String region = System.getenv().getOrDefault("REGION_NAME", "Primary Cluster");
+
+        return "<h1>Hello Anitha! 🎂 Citibank App is LIVE on AKS!</h1>" +
+               "<h3>Current Region: <span style='color:blue;'>" + region + "</span></h3>" +
+               "<p>Your 2.6 Years Cloud Engineer Journey is leveling up!</p>";
     }
 }
